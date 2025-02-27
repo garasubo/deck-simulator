@@ -148,27 +148,71 @@ const Home = () => {
       comboProbabilities.push(combinationProbability);
     });
     
-    // Calculate probability of drawing at least one of any combination
+    // Calculate probability of drawing at least one of any combination using the principle of inclusion-exclusion
     if (combinations.length > 0) {
-      let successCount = 0;
+      // Function to calculate the probability of drawing a specific set of combinations
+      const calculateCombinationSetProbability = (comboIndices: number[]): number => {
+        if (comboIndices.length === 0) return 0;
+        
+        // Get all unique cards required by this set of combinations
+        const requiredCardNames = new Set<string>();
+        comboIndices.forEach(index => {
+          const combo = combinations[index];
+          combo.cards.forEach(cardId => {
+            const card = cards.find(c => c.id === cardId);
+            if (card) requiredCardNames.add(card.name);
+          });
+        });
+        
+        // Calculate the probability of drawing all required cards
+        // For each required card, calculate the probability of drawing at least one
+        let probability = 1.0;
+        requiredCardNames.forEach(cardName => {
+          const count = cardCounts[cardName]?.count || 0;
+          if (count > 0) {
+            // Probability of drawing at least one of this card
+            const cardProb = 1 - calculateProbabilityOfNotDrawing(count, deckSize, drawSize);
+            probability *= cardProb;
+          } else {
+            // If any required card is not in the deck, probability is 0
+            probability = 0;
+          }
+        });
+        
+        return probability;
+      };
       
-      for (let i = 0; i < NUM_SIMULATIONS; i++) {
-        // Shuffle the deck and draw cards
-        const shuffledDeck = [...deck].sort(() => Math.random() - 0.5);
-        const drawnCards = shuffledDeck.slice(0, drawSize);
+      // Apply the principle of inclusion-exclusion
+      let result = 0;
+      
+      // Generate all possible subsets of combinations (power set)
+      const generateSubsets = (n: number): number[][] => {
+        const subsets: number[][] = [];
+        const total = Math.pow(2, n);
         
-        // Check if any combination is complete in the drawn cards
-        const anyComboComplete = combinations.some(combo => 
-          isComboComplete(combo, drawnCards)
-        );
-        
-        if (anyComboComplete) {
-          successCount++;
+        for (let i = 1; i < total; i++) {
+          const subset: number[] = [];
+          for (let j = 0; j < n; j++) {
+            if ((i & (1 << j)) !== 0) {
+              subset.push(j);
+            }
+          }
+          subsets.push(subset);
         }
-      }
+        
+        return subsets;
+      };
       
-      // Calculate probability
-      anyComboProb = successCount / NUM_SIMULATIONS;
+      const subsets = generateSubsets(combinations.length);
+      
+      // Apply inclusion-exclusion principle
+      subsets.forEach(subset => {
+        const sign = subset.length % 2 === 1 ? 1 : -1;
+        const probability = calculateCombinationSetProbability(subset);
+        result += sign * probability;
+      });
+      
+      anyComboProb = Math.max(0, Math.min(1, result)); // Ensure result is between 0 and 1
     }
     
     setSimulationResults({
@@ -414,7 +458,7 @@ const Home = () => {
             
             {simulationResults.anyComboProb !== undefined && combinations.length > 0 && (
               <div className="any-combo-probability">
-                <h3>Probability of Any Combination (Currently Broken)</h3>
+                <h3>Probability of Any Combination</h3>
                 <p className="result-item highlight">
                   <span>Probability of drawing at least one combination:</span> 
                   {(simulationResults.anyComboProb * 100).toFixed(2)}%
