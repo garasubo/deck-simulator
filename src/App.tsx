@@ -5,7 +5,7 @@ import './App.css';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/deck-simulator">
       <div className="app">
         <Navbar />
         <main className="main-content">
