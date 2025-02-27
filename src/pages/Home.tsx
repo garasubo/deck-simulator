@@ -414,7 +414,7 @@ const Home = () => {
             
             {simulationResults.anyComboProb !== undefined && combinations.length > 0 && (
               <div className="any-combo-probability">
-                <h3>Probability of Any Combination</h3>
+                <h3>Probability of Any Combination (Currently Broken)</h3>
                 <p className="result-item highlight">
                   <span>Probability of drawing at least one combination:</span> 
                   {(simulationResults.anyComboProb * 100).toFixed(2)}%
